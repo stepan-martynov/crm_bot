@@ -154,4 +154,5 @@ cython_debug/
 #My files
 config.*
 .gitignore
+:memory*
 

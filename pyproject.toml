@@ -5,11 +5,13 @@ description = ""
 authors = ["stepan-martynov <smartd88@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = "3.10"
+python = "^3.8"
 aiogram = "^2.18"
 pydantic = "^1.9.0"
 yadisk = "^1.2.15"
 loguru = "^0.6.0"
+tortoise-orm = "^0.18.1"
+asyncpg = "^0.25.0"
 
 [tool.poetry.dev-dependencies]
 
