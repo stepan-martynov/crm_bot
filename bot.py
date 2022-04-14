@@ -1,12 +1,11 @@
 # import msilib
-# import os
 
 from aiogram.utils import executor
 from create_bot import dp
 
 
-# async def startup( ):
-#     print("Бот запущен")
+async def startup( ):
+    print("Бот запущен")
 
 from handlers import photographer, other, brocker
 

@@ -12,6 +12,11 @@ yadisk = "^1.2.15"
 loguru = "^0.6.0"
 tortoise-orm = "^0.18.1"
 asyncpg = "^0.25.0"
+docx = "^0.2.4"
+document = "^1.0"
+num2words = "^0.5.10"
+python-docx = "^0.8.11"
+docxtpl = "^0.15.2"
 
 [tool.poetry.dev-dependencies]
 
