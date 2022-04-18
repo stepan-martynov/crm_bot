@@ -3,7 +3,6 @@ from datetime import datetime
 from PIL import Image
 from loguru import logger
 import random
-import pprint
 
 from docx import Document
 from docxtpl import DocxTemplate
@@ -14,12 +13,9 @@ from num2words import num2words
 from yadisk_api import get_public_meta, create_img_list, download_preview
 
 
-# TODO создать БД
-# TODO сущность съемки, агента, агества
-
-location = ""
-doc_template = ""
-service_name = ""
+# location = ""
+# doc_template = ""
+# service_name = ""
 
 # =========== INPUT ===========
 
@@ -27,8 +23,6 @@ service_name = ""
 doc_template = "akt_peredachI_reynaers.docx"
 # location = "Ленинградская обл."
 # service_name = 'Профессиональная фотосъемка загородной недвижимости'
-img_filter = "IMG08927, IMG08938, IMG08941, IMG08946, IMG08955, IMG08956, IMG08963, IMG08983, " \
-             "IMG08990, IMG09002, IMG09015, IMG09020, IMG09036, IMG09039, IMG09043"
 
 URL = "https://disk.yandex.ru/d/P2tu4u-1JR0KNg"
 broker = "Анна Романова"
@@ -44,6 +38,7 @@ dir = get_public_meta(URL)
 litter_price = num2words(price, lang="ru")
 contract_number = f'ev-sm-{dir.name.split(" ")[0]}'  # TODO заменить на порядковый номер контракта из ДБ
 
+
 def filter_img_list(image_list: list, img_filter: str) -> list:
     l = []
     img_filter = img_filter.split(", ")
@@ -58,6 +53,7 @@ def filter_img_list(image_list: list, img_filter: str) -> list:
 
 def date_format_to_ru(d: datetime) -> str:
     return format_date(d, format='long', locale='ru')[:-3]
+
 
 image_list = create_img_list(URL)
 image_list = filter_img_list(image_list, img_filter) if img_filter else image_list
