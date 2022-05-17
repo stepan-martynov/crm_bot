@@ -1,104 +1,123 @@
 import os
-from datetime import datetime
+import datetime
+import pprint
 
-import pydantic
 from PIL import Image
 from loguru import logger
-import random
-import pydantic
+from dataclasses import dataclass, field, asdict
 from docx import Document
 from docxtpl import DocxTemplate
 from docx.shared import Cm
 from babel.dates import format_date
 from num2words import num2words
 
-# from yadiskapi import get_public_meta, create_img_list, download_preview
+import yadiskapi
+
+logger.add('test.log')
 
 
-# location = ""
-# doc_template = ""
-# service_name = ""
+def parse_full_name(s):
+    pass
 
-# =========== INPUT ===========
 
-# doc_template = "E&V3 private.docx"
-doc_template = "akt_peredachI_reynaers.docx"
-# location = "Ленинградская обл."
-# service_name = 'Профессиональная фотосъемка загородной недвижимости'
+def set_doc_name_string(s):
+    pass
 
-URL = "https://disk.yandex.ru/d/P2tu4u-1JR0KNg"
-broker = "Анна Романова"
-price = 2000
 
-# ========== END INPUT ==========
+def parse_expression(s, exp_s):
+    pass
 
-class Entity(pydantic.BaseModel):
 
+@dataclass
+class Customer:
+    name: str
+    full_name: str = field(init=False)
+    doc_name_string: str = field(init=False)
+    inn: str = field(init=False)
+    kpp: str = field(init=False)
+
+    def __post_init__(self):
+        object.__setattr__(self, 'full_name', parse_full_name(self.raw_string))
+        object.__setattr__(self, 'doc_name_string', set_doc_name_string(self))
+        object.__setattr__(self, 'inn', parse_expression(self.raw_string, 'inn_str'))
+        object.__setattr__(self, 'kpp', parse_expression(self.raw_string, 'kpp_str'))
+
+    @property
+    def raw_string(self):
+        s: str = ''
+        return s
+
+
+@dataclass
+class Entity:
     url: str
     broker: str
     customer: str
     service: str
-    price: int
+    price: str
 
-    def __str__(self):
-        return f'{self.__class__} {self.service} {self.url}'
+    @property
+    def photo_dir(self) -> yadiskapi.YaDiskObject:
+        return yadiskapi.get_public_meta(self.url)
 
-
-
-
-
-
-
-doc_template = doc_template or "E&V3.docx"
-DOCX_TEMPLATE_PATH = os.path.join(os.getcwd(), doc_template)
-
-# dir = get_public_meta(URL)
-
-litter_price = num2words(price, lang="ru")
-# contract_number = f'ev-sm-{dir.name.split(" ")[0]}'  # TODO заменить на порядковый номер контракта из ДБ
+    @property
+    def img_list(self) -> list[yadiskapi.YaDiskObject]:
+        return yadiskapi.create_img_list(self.url, img_list=[], names_list=[])
 
 
-def filter_img_list(image_list: list, img_filter: str) -> list:
-    l = []
-    img_filter = img_filter.split(", ")
-    logger.debug(img_filter)
-    for img in img_filter:
-        for raw_img in image_list:
-            if img in raw_img.name:
-                l.append(raw_img)
-    logger.debug(l)
-    return l
+def _get_num(photo_dir: yadiskapi.YaDiskObject) -> str:
+    return f'ev-sm-{photo_dir.name.split()[0]}'
+
+
+def _get_litter_price(price: str) -> str:
+    return num2words(price, lang="ru")
 
 
 def date_format_to_ru(d: datetime) -> str:
     return format_date(d, format='long', locale='ru')[:-3]
 
 
-# image_list = create_img_list(URL)
-# image_list = filter_img_list(image_list, img_filter) if img_filter else image_list
+def _get_address(service: str, address: str) -> str:
+    return f'{service}, {address[4:]}'
 
-# shooting_date = random.choice(image_list).name[:8]
-# contract_date = date_format_to_ru(datetime.strptime(shooting_date, "%Y%m%d"))  # '9 сентября 2020'
-# short_date = datetime.strptime(shooting_date, "%Y%m%d").strftime("%d.%m.%Y")
-# cur_date = date_format_to_ru(datetime.now())
 
-# location = location or 'Санкт-Петербург'
-# service_name = service_name or "Профессиональная фотосъемка недвижимости"
-# context = {
-#     'link': URL,
-#     'num': contract_number,
-#     'NUM': contract_number.upper(),
-#     'date': contract_date,
-#     'DATE': contract_date.upper(),
-#     'cost': str(price),
-#     'letter_cost': litter_price,
-#     'service_name': service_name,
-#     'final_cost': str(price),
-#     'cur_date': cur_date,
-#     'adress': f'{location}, {dir.name[4:]}',
-#     'photos': '{{photos}}',
-#     'num_of_photos': str(len(image_list))
-# }
+@dataclass
+class OutEntity(Entity):
+    num: str = field(init=False)
+    upper_num: str = field(init=False)
+    date: str = field(init=False, default='')
+    upper_date: str = field(init=False)
+    letter_price: str = field(init=False)
+    cur_date: str = field(init=False)
+    address: str = field(init=False)
+    photo_counter: str = field(init=False)
+    photos: str = '{{photos}}'
+
+    def __post_init__(self):
+        object.__setattr__(self, 'num', _get_num(self.photo_dir))
+        object.__setattr__(self, 'upper_num', self.num.upper())
+        object.__setattr__(self, 'date', date_format_to_ru(self.shooting_date))
+        object.__setattr__(self, 'upper_date', self.date.upper())
+        object.__setattr__(self, 'letter_price', _get_litter_price(self.price))
+        object.__setattr__(self, 'cur_date', date_format_to_ru(datetime.datetime.now()))
+        object.__setattr__(self, 'address', _get_address(self.service, self.photo_dir.name))
+        object.__setattr__(self, 'photo_counter', str(len(self.img_list)))
+
+    @property
+    def shooting_date(self) -> datetime:
+        return datetime.datetime.strptime(self.img_list[0].name[:8], "%Y%m%d")
+
+    @property
+    def exel_string(self) -> str:
+        return f'{self.shooting_date.strftime("%d.%m.%Y")}\t\t{self.photo_dir.name[4:]}\t\t\t{self.broker}\t\t\t{self.num}' \
+               f' не оплачено\t{self.price}\t\t{self.url}'
+
+    @property
+    def portal_string(self) -> str:
+        return f'Ссылка на объект: {self.url}\n' \
+               f'Ответственный за фотосессию: {self.broker}\n' \
+               f'{self.num}\n' \
+               f'Фотосъемка квартиры по адресу {self.address}'
 
 
 def add_images(image_list, doc):
@@ -107,7 +126,7 @@ def add_images(image_list, doc):
             p.text = ''
             run = p.add_run()
             for image in image_list:
-                f = download_preview(image)
+                f = yadiskapi.download_preview(image)
                 try:
                     with Image.open(f) as img:
                         img.save(f, "JPEG")
@@ -118,45 +137,36 @@ def add_images(image_list, doc):
                     os.remove(f)
                 except Exception as e:
                     logger.error(e)
-
     return doc
 
 
+def render_doc(entity: OutEntity):
+    doc_template = f'{entity.customer}.docx'
+    DOCX_TEMPLATE_PATH = os.path.join(os.getcwd(), 'docs_tamplates', doc_template)
+    doc = DocxTemplate(DOCX_TEMPLATE_PATH)
+    doc.render(asdict(entity))
+    file_name = f'{entity.num}.docx'
+    doc.save(file_name)
+
+    doc = Document(file_name)
+    add_images(entity.img_list, doc)
+    doc.save(file_name)
+
+
+def main():
+    # pass
+    #
+    ent1 = OutEntity(
+        url="https://disk.yandex.ru/d/KLNVNKhQ5REaJw",
+        broker="Анна Романова",
+        customer="E&V privet",
+        service="Город",
+        price='2000'
+    )
+
+    pprint.pprint(asdict(ent1))
+    # render_doc(ent1)
+
+
 if __name__ == '__main__':
-    # doc = DocxTemplate(DOCX_TEMPLATE_PATH)
-    # doc.render(context)
-    # file_name = f"{contract_number}.docx"
-    # doc.save(file_name)
-    #
-    # pprint.pprint(context)
-    #
-    # print('\nВывод для exel')
-    # str_to_exel = f'{short_date}\t\t{dir.name[4:]}\t\t\t{broker}\t\t\t{contract_number}' \
-    #               f' не оплачено\t{str(price)}\t\t{str(URL)}\n\n' \
-    #               f'\n Для портала:\n' \
-    #               f'Ссылка на объект: {URL}\n' \
-    #               f'Ответственный за фотосессию: {broker}\n' \
-    #               f'{contract_number}'
-    #
-    # print(str_to_exel)
-
-    # doc = Document(file_name)
-    # doc = Document(doc_template)
-    # add_images(image_list, doc)
-    # doc.save(file_name)
-    # doc.save(doc_template)
-    # print(upload_file(URL, file_name))
-
-    # os.remove(file_name)
-
-    data = {
-        "url": "https://",
-        "broker": "Анна Романова",
-        "customer": "e&v",
-        "service": "Город",
-        "price": 3000
-    }
-
-    ent1 = Entity.parse_obj(data)
-
-    print(ent1)
+    main()

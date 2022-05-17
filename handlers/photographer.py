@@ -6,6 +6,7 @@ from aiogram.dispatcher.filters import Regexp
 import re
 
 from keyboards import kb_service, kb_customer
+import render_docx
 
 
 class FSMCreateDos(StatesGroup):
@@ -17,7 +18,7 @@ class FSMCreateDos(StatesGroup):
 
 
 # Start FSM
-yadisk_regexp = r'(?P<url>https?://[^\s]+)'
+yadisk_regexp = r'(?P<url>https?://disk.yandex.ru[^\s]+)'
 
 
 async def start_bill_request(message: types.Message, state=FSMContext):
@@ -29,10 +30,10 @@ async def start_bill_request(message: types.Message, state=FSMContext):
     await FSMCreateDos.broker.set()
 
 
-async def add_broker(message: types.Contact, state=FSMContext):
+async def add_broker(message: types.Message, state=FSMContext):
     async with state.proxy() as data:
-        data["broker_phone"] = message.contact.phone_number
-        data["broker_name"] = f'{message.contact.first_name} {message.contact.last_name}'
+        # data["broker_phone"] = message.contact.phone_number
+        data["broker"] = f'{message.text}'
     await message.reply("Выбери заказчика?", reply_markup=kb_customer)
     await FSMCreateDos.customer.set()
 
@@ -54,19 +55,22 @@ async def set_service(message: types.Message, state=FSMContext):
 
 async def add_price(message: types.Message, state=FSMContext):
     async with state.proxy() as data:
-        data["price"] = int(message.text)
-        # TODO doc.render()
+        data["price"] = message.text
+        ent = render_docx.OutEntity(**data)
+        print(ent.exel_string)
+        print(ent.portal_string)
+        render_docx.render_doc(ent)
         # TODO f = doc.load()
         # TODO send docx file
         # TODO send info
-        await message.reply(str(data))
+        await message.reply(f'{ent.num}.docx сформирован')
 
     await state.finish()
 
 
 def register_photographer_handler(dp: Dispatcher):
     dp.register_message_handler(start_bill_request, Regexp(yadisk_regexp), state=None)
-    dp.register_message_handler(add_broker, content_types='contact', state=FSMCreateDos.broker)
+    dp.register_message_handler(add_broker, state=FSMCreateDos.broker)
     dp.register_message_handler(set_customer, state=FSMCreateDos.customer)
     dp.register_message_handler(set_service, state=FSMCreateDos.service)
     dp.register_message_handler(add_price, state=FSMCreateDos.price)
