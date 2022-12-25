@@ -7,8 +7,8 @@ kb_service: ReplyKeyboardMarkup = ReplyKeyboardMarkup(resize_keyboard=True)
 
 kb_service.row(service_b1, service_b2)
 
-customer_b1 = KeyboardButton('e&v')
-customer_b2 = KeyboardButton('e&v_privet')
+customer_b1 = KeyboardButton('E&V3')
+customer_b2 = KeyboardButton('E&V privet')
 
 kb_customer: ReplyKeyboardMarkup = ReplyKeyboardMarkup(resize_keyboard=True)
 
